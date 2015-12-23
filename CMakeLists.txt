@@ -1,0 +1,512 @@
+# Top-Level CmakeLists.txt
+# For GNUInstallDirs
+cmake_minimum_required(VERSION 2.8.5)
+PROJECT( RTABMap )
+SET(PROJECT_PREFIX rtabmap)
+
+# Catkin doesn't support multiarch library path, 
+# fix to "lib" if not set by user.
+IF(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+   set(CMAKE_INSTALL_LIBDIR "lib")
+ENDIF(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+
+INCLUDE(GNUInstallDirs)
+
+####### local cmake modules #######
+SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake_modules")
+
+#######################
+# VERSION
+#######################
+SET(RTABMAP_MAJOR_VERSION 0)
+SET(RTABMAP_MINOR_VERSION 10)
+SET(RTABMAP_PATCH_VERSION 12)
+SET(RTABMAP_VERSION
+  ${RTABMAP_MAJOR_VERSION}.${RTABMAP_MINOR_VERSION}.${RTABMAP_PATCH_VERSION})
+  
+SET(PROJECT_VERSION "${RTABMAP_VERSION}")
+
+SET(PROJECT_VERSION_MAJOR ${RTABMAP_MAJOR_VERSION})
+SET(PROJECT_VERSION_MINOR ${RTABMAP_MINOR_VERSION})
+SET(PROJECT_VERSION_PATCH ${RTABMAP_PATCH_VERSION})
+
+SET(PROJECT_SOVERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+
+SET(RTABMAP_QT_VERSION 4 CACHE STRING "Which QT version to use")
+
+####### COMPILATION PARAMS #######
+# In case of Makefiles if the user does not setup CMAKE_BUILD_TYPE, assume it's Release:
+IF(${CMAKE_GENERATOR} MATCHES ".*Makefiles")
+    IF("${CMAKE_BUILD_TYPE}" STREQUAL "")
+        set(CMAKE_BUILD_TYPE Release)
+    ENDIF("${CMAKE_BUILD_TYPE}" STREQUAL "")
+ENDIF(${CMAKE_GENERATOR} MATCHES ".*Makefiles")
+
+SET(CMAKE_DEBUG_POSTFIX "d")
+
+IF(WIN32 AND NOT MINGW)
+  	ADD_DEFINITIONS("-DNOMINMAX")
+    ADD_DEFINITIONS("-wd4100 -wd4127 -wd4150 -wd4191 -wd4242 -wd4244 -wd4251 -wd4305 -wd4365 -wd4512 -wd4514 -wd4548 -wd4571 -wd4619 -wd4625 -wd4626 -wd4628 -wd4668 -wd4710 -wd4711 -wd4738 -wd4820 -wd4946 -wd4986")
+ELSE ()
+	ADD_DEFINITIONS( "-Wall" )
+	ADD_DEFINITIONS("-Wno-unknown-pragmas")
+ENDIF()
+
+IF(MINGW)
+    # Hide the --enable-auto-import warning
+	SET(CMAKE_EXE_LINKER_FLAGS "-Wl,--enable-auto-import")  
+	SET(CMAKE_MODULE_LINKER_FLAGS "-Wl,--enable-auto-import") 
+	SET(CMAKE_SHARED_LINKER_FLAGS "-Wl,--enable-auto-import") 
+ENDIF(MINGW)
+
+# GCC 4 required
+IF(UNIX OR MINGW)
+    EXEC_PROGRAM( gcc ARGS "-dumpversion" OUTPUT_VARIABLE GCC_VERSION )
+    IF(GCC_VERSION VERSION_LESS "4.0.0")
+        MESSAGE(FATAL_ERROR "GCC ${GCC_VERSION} found, but version 4.x.x minimum is required")
+    ENDIF(GCC_VERSION VERSION_LESS "4.0.0")
+ENDIF(UNIX OR MINGW)
+
+#The CDT Error Parser cannot handle error messages that span 
+#more than one line, which is the default gcc behavior. 
+#In order to force gcc to generate single line error messages with no line wrapping
+IF(CMAKE_COMPILER_IS_GNUCC)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fmessage-length=0")
+ENDIF(CMAKE_COMPILER_IS_GNUCC)
+IF(CMAKE_COMPILER_IS_GNUCXX)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fmessage-length=0")
+ENDIF(CMAKE_COMPILER_IS_GNUCXX)
+
+# [Eclipse] Automatic Discovery of Include directories (Optional, but handy) 
+#SET(CMAKE_VERBOSE_MAKEFILE ON)
+
+#Other paths...
+IF(APPLE)
+   # For Mac ports
+   SET(CMAKE_INCLUDE_PATH "/opt/local/include;${CMAKE_INCLUDE_PATH}")
+   SET(CMAKE_LIBRARY_PATH "/opt/local/lib;${CMAKE_LIBRARY_PATH}")
+ENDIF()
+
+####### Build libraries as shared or static #######
+OPTION( BUILD_SHARED_LIBS "Set to OFF to build static libraries" ON )
+
+
+####### OUTPUT DIR #######
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+
+# Avoid Visual Studio bin/Release and bin/Debug sub directories
+SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+SET( CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+SET( CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
+SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+SET( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+
+####### INSTALL DIR #######
+set(INSTALL_INCLUDE_DIR include/${PROJECT_PREFIX}-${RTABMAP_MAJOR_VERSION}.${RTABMAP_MINOR_VERSION} CACHE PATH
+  "Installation directory for header files")
+if(WIN32 AND NOT CYGWIN)
+  set(DEF_INSTALL_CMAKE_DIR CMake)
+else()
+  set(DEF_INSTALL_CMAKE_DIR ${CMAKE_INSTALL_LIBDIR}/${PROJECT_PREFIX}-${RTABMAP_MAJOR_VERSION}.${RTABMAP_MINOR_VERSION})
+endif()
+set(INSTALL_CMAKE_DIR ${DEF_INSTALL_CMAKE_DIR} CACHE PATH
+  "Installation directory for CMake files")
+  
+####### BUILD OPTIONS #######
+IF(APPLE)
+	OPTION(BUILD_AS_BUNDLE "Set to ON to build as bundle (DragNDrop)" OFF)
+ENDIF(APPLE)
+
+####### DEPENDENCIES #######
+
+option(WITH_QT            "Include Qt support"                   ON)
+option(WITH_FREENECT      "Include Freenect support"             ON)
+option(WITH_FREENECT2     "Include Freenect2 support"            ON)
+option(WITH_OPENNI2       "Include OpenNI2 support"              ON)
+option(WITH_DC1394        "Include dc1394 support"               ON)
+option(WITH_G2O           "Include g2o support"                  ON)
+option(WITH_GTSAM         "Include GTSAM support"                ON)
+option(WITH_CVSBA         "Include cvsba support"                ON)
+option(WITH_FLYCAPTURE2   "Include FlyCapture2/Triclops support" ON)
+
+FIND_PACKAGE(OpenCV REQUIRED QUIET)
+FIND_PACKAGE(PCL 1.7 REQUIRED QUIET)
+FIND_PACKAGE(ZLIB REQUIRED QUIET)
+IF(OpenCV_FOUND)
+   MESSAGE(STATUS "Found OpenCV: ${OpenCV_INCLUDE_DIRS}")
+ENDIF(OpenCV_FOUND)
+IF(PCL_FOUND)
+   MESSAGE(STATUS "Found PCL: ${PCL_INCLUDE_DIRS}")
+ENDIF(PCL_FOUND)
+IF(ZLIB_FOUND)
+   MESSAGE(STATUS "Found ZLIB: ${ZLIB_INCLUDE_DIRS}")
+ENDIF(ZLIB_FOUND)
+
+IF(WITH_QT)
+# If Qt is here, the GUI will be built
+    IF("${RTABMAP_QT_VERSION}" STREQUAL "4")
+        FIND_PACKAGE(Qt4 COMPONENTS QtCore QtGui QtSvg)
+    ELSE()
+        FIND_PACKAGE(Qt5 COMPONENTS Widgets Core Gui Svg)
+    ENDIF()
+    IF(QT4_FOUND OR Qt5_FOUND)
+        FIND_PACKAGE(VTK REQUIRED)
+        IF("${VTK_MAJOR_VERSION}" EQUAL 5)
+            FIND_PACKAGE(QVTK REQUIRED) # only for VTK 5
+        ENDIF("${VTK_MAJOR_VERSION}" EQUAL 5)
+    ENDIF(QT4_FOUND OR Qt5_FOUND)
+ENDIF(WITH_QT)
+
+IF(WITH_FREENECT)
+    FIND_PACKAGE(Freenect QUIET)
+    IF(Freenect_FOUND)
+       MESSAGE(STATUS "Found Freenect: ${Freenect_INCLUDE_DIRS}")
+    ENDIF(Freenect_FOUND)
+ENDIF(WITH_FREENECT)
+
+IF(WITH_FREENECT2)
+    FIND_PACKAGE(freenect2 QUIET)
+    IF(freenect2_FOUND)
+	   IF(NOT freenect2_INCLUDE_DIRS)
+	      SET(freenect2_INCLUDE_DIRS ${freenect2_INCLUDE_DIR})
+	   ENDIF(NOT freenect2_INCLUDE_DIRS)
+       MESSAGE(STATUS "Found freenect2: ${freenect2_INCLUDE_DIRS}")
+    ENDIF(freenect2_FOUND)
+ENDIF(WITH_FREENECT2)
+
+IF(WITH_OPENNI2)
+    FIND_PACKAGE(OpenNI2 QUIET)
+    IF(OpenNI2_FOUND)
+       MESSAGE(STATUS "Found OpenNI2: ${OpenNI2_INCLUDE_DIRS}")
+    ENDIF(OpenNI2_FOUND)
+ENDIF(WITH_OPENNI2)
+
+IF(WITH_DC1394)
+    FIND_PACKAGE(DC1394 QUIET)
+    IF(DC1394_FOUND)
+       MESSAGE(STATUS "Found DC1394: ${DC1394_INCLUDE_DIRS}")
+    ENDIF(DC1394_FOUND)
+ENDIF(WITH_DC1394)
+
+IF(WITH_G2O)
+    FIND_PACKAGE(G2O QUIET)
+    IF(G2O_FOUND)
+       MESSAGE(STATUS "Found g2o: ${G2O_INCLUDE_DIRS}")
+    ENDIF(G2O_FOUND)
+ENDIF(WITH_G2O)
+
+IF(WITH_GTSAM)
+    FIND_PACKAGE(GTSAM QUIET)
+ENDIF(WITH_GTSAM)
+
+IF(G2O_FOUND OR GTSAM_FOUND)
+   #Newest versions require std11
+   IF(NOT MSVC)
+     include(CheckCXXCompilerFlag)
+	  CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
+	  CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
+	  IF(COMPILER_SUPPORTS_CXX11)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+	  ELSEIF(COMPILER_SUPPORTS_CXX0X)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+	  ELSE()
+		message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler if you want to use g2o or gtsam (set \"-DWITH_G2O=OFF -DWITH_GTSAM=OFF\" to build without g2o and gtsam).")
+	  ENDIF()
+   ENDIF()
+ENDIF(G2O_FOUND OR GTSAM_FOUND)
+
+IF(WITH_FLYCAPTURE2)
+    FIND_PACKAGE(FlyCapture2 QUIET)
+    IF(FlyCapture2_FOUND)
+       MESSAGE(STATUS "Found FlyCapture2: ${FlyCapture2_INCLUDE_DIRS}")
+    ENDIF(FlyCapture2_FOUND)
+ENDIF(WITH_FLYCAPTURE2)
+
+IF(WITH_CVSBA)
+    FIND_PACKAGE(cvsba)
+    IF(cvsba_FOUND)
+       MESSAGE(STATUS "Found cvsba: ${cvsba_INCLUDE_DIRS}")
+    ENDIF(cvsba_FOUND)
+ENDIF(WITH_CVSBA)
+
+####### OSX BUNDLE CMAKE_INSTALL_PREFIX #######
+IF(APPLE AND BUILD_AS_BUNDLE)
+  IF(Qt5_FOUND OR (QT4_FOUND AND QT_QTCORE_FOUND AND QT_QTGUI_FOUND))
+       
+    # Required when packaging, and set CMAKE_INSTALL_PREFIX to "/".
+    SET(CMAKE_INSTALL_PREFIX "/")
+    SET(CPACK_SET_DESTDIR TRUE) 
+    
+    SET(CMAKE_BUNDLE_NAME "${PROJECT_NAME}")
+    SET(CMAKE_BUNDLE_LOCATION "${CMAKE_INSTALL_PREFIX}")
+    
+    # make sure CMAKE_INSTALL_PREFIX ends in /
+    STRING(LENGTH "${CMAKE_INSTALL_PREFIX}" LEN)
+    MATH(EXPR LEN "${LEN} -1" )
+    STRING(SUBSTRING "${CMAKE_INSTALL_PREFIX}" ${LEN} 1 ENDCH)
+    IF(NOT "${ENDCH}" STREQUAL "/")
+      SET(CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}/")
+    ENDIF(NOT "${ENDCH}" STREQUAL "/")
+    SET(CMAKE_INSTALL_PREFIX 
+      "${CMAKE_INSTALL_PREFIX}${CMAKE_BUNDLE_NAME}.app/Contents")
+  ELSE()
+    
+    #If Qt is not here, no need to build a bundle
+    SET(BUILD_AS_BUNDLE OFF)
+  ENDIF()
+ENDIF(APPLE AND BUILD_AS_BUNDLE)
+
+
+####### SOURCES (Projects) #######
+SET(NONFREE 0)
+IF(OPENCV_NONFREE_FOUND OR OPENCV_XFEATURES2D_FOUND)
+   SET(NONFREE 1)
+ENDIF(OPENCV_NONFREE_FOUND OR OPENCV_XFEATURES2D_FOUND)
+CONFIGURE_FILE(Version.h.in ${PROJECT_SOURCE_DIR}/corelib/include/${PROJECT_PREFIX}/core/Version.h)
+
+ADD_SUBDIRECTORY( utilite )
+ADD_SUBDIRECTORY( corelib )
+
+IF(Qt5_FOUND OR (QT4_FOUND AND QT_QTCORE_FOUND AND QT_QTGUI_FOUND))
+   ADD_SUBDIRECTORY( guilib )
+   ADD_SUBDIRECTORY( app )
+ELSEIF(WITH_QT)
+   MESSAGE(WARNING "Qt not found, the GUI lib and the stand-alone application will not be compiled...")
+ENDIF()
+
+ADD_SUBDIRECTORY( tools )
+ADD_SUBDIRECTORY( examples )
+
+#######################
+# Uninstall target, for "make uninstall"
+#######################
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+  IMMEDIATE @ONLY)
+
+ADD_CUSTOM_TARGET(uninstall
+  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake")
+
+####
+# Setup RTABMapConfig.cmake
+####
+# Create the RTABMapConfig.cmake and RTABMapConfigVersion files
+file(RELATIVE_PATH REL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_CMAKE_DIR}" "${CMAKE_INSTALL_PREFIX}/${INSTALL_INCLUDE_DIR}")
+file(RELATIVE_PATH REL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/${INSTALL_CMAKE_DIR}" "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}")
+   
+# ... for the build tree
+set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/corelib/include" 
+					  "${PROJECT_SOURCE_DIR}/guilib/include" 
+					  "${PROJECT_SOURCE_DIR}/utilite/include")
+set(CONF_LIB_DIR "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+set(CONF_WITH_GUI ${WITH_QT})
+configure_file(RTABMapConfig.cmake.in
+  "${PROJECT_BINARY_DIR}/RTABMapConfig.cmake" @ONLY)
+  
+# ... for the install tree
+set(CONF_INCLUDE_DIRS "\${RTABMap_CMAKE_DIR}/${REL_INCLUDE_DIR}")
+set(CONF_LIB_DIR "\${RTABMap_CMAKE_DIR}/${REL_LIB_DIR}")
+configure_file(RTABMapConfig.cmake.in
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/RTABMapConfig.cmake" @ONLY)
+  
+# ... for both
+configure_file(RTABMapConfigVersion.cmake.in
+  "${PROJECT_BINARY_DIR}/RTABMapConfigVersion.cmake" @ONLY)
+
+# Install the RTABMapConfig.cmake and RTABMapConfigVersion.cmake
+install(FILES
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/RTABMapConfig.cmake"
+  "${PROJECT_BINARY_DIR}/RTABMapConfigVersion.cmake"
+  DESTINATION "${INSTALL_CMAKE_DIR}" COMPONENT devel)
+####
+
+### Install package.xml for catkin
+install(FILES package.xml DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_PREFIX}")
+
+#######################
+# CPACK (Packaging)
+#######################
+INCLUDE(InstallRequiredSystemLibraries)
+
+SET(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+SET(CPACK_PACKAGE_VENDOR "${PROJECT_NAME} project")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "RTAB-MAP is a Real-Time Appearance-Based Mapping approach.")
+#SET(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/Description.txt")
+#SET(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.txt")
+SET(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+SET(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+SET(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+#SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}")
+#SET(CPACK_PACKAGE_EXECUTABLES "")
+#SET(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}")
+SET(CPACK_PACKAGE_CONTACT "matlabbe@gmail.com")
+
+set(CPACK_SOURCE_IGNORE_FILES 
+  "\\\\.svn/" 
+  "\\\\.settings/" 
+  "${PROJECT_SOURCE_DIR}/build/[a-zA-Z0-9_]+" 
+  "~$" 
+  "${PROJECT_SOURCE_DIR}/bin/.*${PROJECT_PREFIX}"
+  "${PROJECT_SOURCE_DIR}/bin/.*${PROJECT_NAME}"
+  "${PROJECT_SOURCE_DIR}/bin/.*[tT]est"
+  "${PROJECT_SOURCE_DIR}/bin/.*[eE]xample"
+  "${PROJECT_SOURCE_DIR}/bin/.*uresourcegenerator"
+  "\\\\.DS_Store"
+)
+
+IF(WIN32)
+  SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+  IF(CMAKE_CL_64) 
+    SET(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES64") 
+  ELSE() 
+    SET(CPACK_NSIS_INSTALL_ROOT "$PROGRAMFILES") 
+  ENDIF()
+  SET(CPACK_GENERATOR "ZIP;NSIS")
+  SET(CPACK_SOURCE_GENERATOR "ZIP")
+  SET(CPACK_NSIS_PACKAGE_NAME "${PROJECT_NAME}")
+  SET(ICON_PATH "${PROJECT_SOURCE_DIR}/app/src/${PROJECT_NAME}.ico")
+  SET(CPACK_NSIS_MUI_ICON ${ICON_PATH})
+  SET(CPACK_NSIS_MUI_UNIICON ${ICON_PATH})
+  SET(CPACK_PACKAGE_INSTALL_DIRECTORY "${PROJECT_NAME}")
+  #SET(CPACK_PACKAGE_ICON ${ICON_PATH})
+  #SET(CPACK_NSIS_INSTALLED_ICON_NAME ${ICON_PATH})
+  #SET(CPACK_NSIS_HELP_LINK "http:\\\\\\\\www.${PROJECT_PREFIX}.googlecode.com")
+  #SET(CPACK_NSIS_URL_INFO_ABOUT "http:\\\\\\\\www.${PROJECT_PREFIX}.googlecode.com")
+  SET(CPACK_NSIS_DISPLAY_NAME "${PROJECT_NAME}")
+  SET(CPACK_NSIS_CONTACT ${CPACK_PACKAGE_CONTACT})
+  # Set the icon used for the Windows "Add or Remove Programs" tool.
+  SET(CPACK_NSIS_INSTALLED_ICON_NAME bin\\\\${PROJECT_NAME}.exe)
+  # Desktop link ("executableName" "linkName")
+  SET(CPACK_PACKAGE_EXECUTABLES "${PROJECT_NAME}" "${PROJECT_NAME}" ${CPACK_PACKAGE_EXECUTABLES}) 
+  SET(CPACK_CREATE_DESKTOP_LINKS "${PROJECT_NAME}" ${CPACK_CREATE_DESKTOP_LINKS}) 
+  SET(CPACK_NSIS_MODIFY_PATH ON)
+  
+ELSEIF(APPLE)
+  # The project is created as a bundle over the main app (see ./app/src).
+  # Here we package only this bundle. Note that we set 
+  # CMAKE_INSTALL_PREFIX to "/" when packaging...
+  IF(BUILD_AS_BUNDLE)
+    SET(CPACK_GENERATOR "DragNDrop")
+  ELSE()
+    SET(CPACK_GENERATOR "PackageMaker;TBZ2")
+  ENDIF()
+  
+  SET(CPACK_SOURCE_GENERATOR "ZIP")
+
+  SET(CPACK_PACKAGE_ICON "${PROJECT_SOURCE_DIR}/app/src/${PROJECT_NAME}.icns")
+
+ELSE()
+  SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+  SET(CPACK_GENERATOR "TBZ2")
+  SET(CPACK_SOURCE_GENERATOR "ZIP")
+ENDIF()
+
+INCLUDE(CPack)
+
+MESSAGE(STATUS "--------------------------------------------")
+MESSAGE(STATUS "Info :")
+MESSAGE(STATUS "  CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
+MESSAGE(STATUS "  CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+IF(NOT WIN32)
+	# see comment above for the BUILD_SHARED_LIBS option on Windows
+	MESSAGE(STATUS "  BUILD_SHARED_LIBS = ${BUILD_SHARED_LIBS}")
+ENDIF(NOT WIN32)
+IF(APPLE)
+MESSAGE(STATUS "  BUILD_AS_BUNDLE = ${BUILD_AS_BUNDLE}")
+ENDIF(APPLE)
+
+IF(OpenCV_FOUND)
+  IF(OpenCV_VERSION_MAJOR EQUAL 2)
+    IF(OPENCV_NONFREE_FOUND)
+      MESSAGE(STATUS "  With OpenCV 2 nonfree module (SIFT/SURF) = YES")
+    ELSE()
+      MESSAGE(STATUS "  With OpenCV 2 nonfree module (SIFT/SURF) = NO (not found)")
+    ENDIF()
+  ELSE()
+    IF(OPENCV_XFEATURES2D_FOUND)
+      MESSAGE(STATUS "  With OpenCV 3 xfeatures2d module (SIFT/SURF/BRIEF/FREAK) = YES")
+    ELSE()
+      MESSAGE(STATUS "  With OpenCV 3 xfeatures2d module (SIFT/SURF/BRIEF/FREAK) = NO (not found)")
+    ENDIF()
+  ENDIF()
+ENDIF(OpenCV_FOUND)
+
+IF(Freenect_FOUND)
+MESSAGE(STATUS "  With Freenect             = YES")
+ELSEIF(NOT WITH_FREENECT)
+MESSAGE(STATUS "  With Freenect             = NO (WITH_FREENECT=OFF)")
+ELSE()
+MESSAGE(STATUS "  With Freenect             = NO (libfreenect not found)")
+ENDIF()
+
+IF(OpenNI2_FOUND)
+MESSAGE(STATUS "  With OpenNI2              = YES")
+ELSEIF(NOT WITH_OPENNI2)
+MESSAGE(STATUS "  With OpenNI2              = NO (WITH_OPENNI2=OFF)")
+ELSE()
+MESSAGE(STATUS "  With OpenNI2              = NO (OpenNI2 not found)")
+ENDIF()
+
+IF(freenect2_FOUND)
+MESSAGE(STATUS "  With Freenect2            = YES")
+ELSEIF(NOT WITH_FREENECT2)
+MESSAGE(STATUS "  With Freenect2            = NO (WITH_FREENECT2=OFF)")
+ELSE()
+MESSAGE(STATUS "  With Freenect2            = NO (libfreenect2 not found)")
+ENDIF()
+
+IF(DC1394_FOUND)
+MESSAGE(STATUS "  With dc1394               = YES")
+ELSEIF(NOT WITH_DC1394)
+MESSAGE(STATUS "  With dc1394               = NO (WITH_DC1394=OFF)")
+ELSE()
+MESSAGE(STATUS "  With dc1394               = NO (dc1394 not found)")
+ENDIF()
+
+IF(FlyCapture2_FOUND)
+MESSAGE(STATUS "  With FlyCapture2/Triclops = YES")
+ELSEIF(NOT WITH_FLYCAPTURE2)
+MESSAGE(STATUS "  With FlyCapture2/Triclops = NO (WITH_FLYCAPTURE2=OFF)")
+ELSE()
+MESSAGE(STATUS "  With FlyCapture2/Triclops = NO (Point Grey SDK not found)")
+ENDIF()
+
+IF(G2O_FOUND)
+MESSAGE(STATUS "  With g2o                  = YES")
+ELSEIF(NOT WITH_G2O)
+MESSAGE(STATUS "  With g2o                  = NO (WITH_G2O=OFF)")
+ELSE()
+MESSAGE(STATUS "  With g2o                  = NO (g2o not found)")
+ENDIF()
+
+IF(GTSAM_FOUND)
+MESSAGE(STATUS "  With GTSAM                = YES")
+ELSEIF(NOT WITH_GTSAM)
+MESSAGE(STATUS "  With GTSAM                = NO (WITH_GTSAM=OFF)")
+ELSE()
+MESSAGE(STATUS "  With GTSAM                = NO (GTSAM not found)")
+ENDIF()
+
+IF(cvsba_FOUND)
+MESSAGE(STATUS "  With cvsba                = YES")
+ELSEIF(NOT WITH_CVSBA)
+MESSAGE(STATUS "  With cvsba                = NO (WITH_CVSBA=OFF)")
+ELSE()
+MESSAGE(STATUS "  With cvsba                = NO (cvsba not found)")
+ENDIF()
+
+IF(QT4_FOUND)
+MESSAGE(STATUS "  With Qt                   = YES (version 4)")
+ELSEIF(Qt5_FOUND)
+MESSAGE(STATUS "  With Qt                   = YES (version 5)")
+ELSEIF(NOT WITH_QT)
+MESSAGE(STATUS "  With Qt                   = NO (WITH_QT=OFF)")
+ELSE()
+MESSAGE(STATUS "  With Qt                   = NO (Qt not found, to use Qt5 you should set -DRTABMAP_QT_VERSION=5)")
+ENDIF()
+
+MESSAGE(STATUS "--------------------------------------------")
