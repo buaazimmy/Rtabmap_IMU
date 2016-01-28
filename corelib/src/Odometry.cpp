@@ -293,8 +293,8 @@ Transform Odometry::process(const SensorData & data, OdometryInfo * info)
 //		static UTimer time2;
 //		printf("Freq:\t %f\n",1/time2.ticks() );
 		/*print qimu and qvo*/
-		Eigen::Quaternion<double> q = this->imu.q;
-		printf("qimu\t%lf\t%lf\t%lf\t%lf\t",q.x(),q.y(),q.z(),q.w());
+//		Eigen::Quaternion<double> q = this->imu.q;
+//		printf("qimu\t%lf\t%lf\t%lf\t%lf\t",q.x(),q.y(),q.z(),q.w());
 		Transform pose = _pose * t;
 		Eigen::Quaterniond q_vo = pose.getQuaterniond();
 		printf("qvo\t%lf\t%lf\t%lf\t%lf\n",q_vo.x(),q_vo.y(),q_vo.z(),q_vo.w());

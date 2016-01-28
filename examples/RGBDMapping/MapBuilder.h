@@ -125,6 +125,10 @@ protected slots:
 		{
 			lastOdomPose_ = pose;
 
+			Eigen::Quaterniond q_vo = pose.getQuaterniond();
+			printf("qvo\t%lf\t%lf\t%lf\t%lf\t", q_vo.x(), q_vo.y(), q_vo.z(),q_vo.w());
+			q_vo = pose.q_imu;
+			printf("qimu\t%lf\t%lf\t%lf\t%lf\n",q_vo.x(),q_vo.y(),q_vo.z(),q_vo.w());
 			// 3d cloud
 			if(odom.data().depthOrRightRaw().cols == odom.data().imageRaw().cols &&
 			   odom.data().depthOrRightRaw().rows == odom.data().imageRaw().rows &&

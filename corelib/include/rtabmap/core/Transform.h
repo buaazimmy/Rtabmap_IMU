@@ -116,6 +116,8 @@ public:
 	Eigen::Quaternionf getQuaternionf() const;
 	Eigen::Quaterniond getQuaterniond() const;
 
+	Eigen::Quaterniond q_imu;
+
 public:
 	static Transform getIdentity();
 	static Transform fromEigen4f(const Eigen::Matrix4f & matrix);
