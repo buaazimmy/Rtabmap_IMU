@@ -18,8 +18,7 @@ public:
 				0.0,1.0,0.0,
 				0.0,0.0,1.0;
 		q = {1.0,0.0,0.0,0.0};
-		q_last = {1.0,0.0,0.0,0.0};
-		std::cout<<q.matrix()<<std::endl;
+//		std::cout<<q.matrix()<<std::endl;
 		time.start();
 		first_frame = true;
 	}
@@ -34,7 +33,7 @@ public:
 		int32_t presure;
 	};
 	Eigen::Matrix3d cib;
-	Eigen::Quaternion<double> q,q_last;
+	Eigen::Quaternion<double> q;
 	Eigen::Quaternion<double> rk;
 	Eigen::Vector3d gyro;
 	Eigen::Vector3d angle;
@@ -147,7 +146,7 @@ private:
 	    rk = {ac,as*angle.x(),as*angle.y(),as*angle.z()};
 	    q = q * rk;
 	    q = q.normalized();
-	    printf("q:%lf\t%lf\t%lf\t%lf\n",q.x(),q.y(),q.z(),q.w());
+//	    printf("q:%lf\t%lf\t%lf\t%lf\n",q.x(),q.y(),q.z(),q.w());
 	    cib = q.matrix();
 	}
 };

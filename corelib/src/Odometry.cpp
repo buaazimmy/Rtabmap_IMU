@@ -174,18 +174,14 @@ Transform Odometry::process(const SensorData & data, OdometryInfo * info)
 
 	UTimer time;
 	Transform t = this->computeTransform(data, info);
-	Eigen::Matrix3d tmp = this->imu.q.matrix() * this->imu.q_last.matrix().inverse();
-	std::cout<<"t0:"<<std::endl<<t<<std::endl;
-	for(int i=0;i<3;i++)
-		for(int j=0;j<3;j++)
-			*(t.data()+i*4+j) = *(tmp.data() + 3*i+j);
-//	Eigen::MatrixXd tmp = this->imu.q.matrix();
-//	tmp.resize(4,4);
-//	Eigen::Matrix4d imu_transform = tmp;
-//	imu_transform.col(3) = t.toEigen4d().col(3);
-//	t = Transform::fromEigen4d(imu_transform);
-	this->imu.q_last = this->imu.q;
-	std::cout<<"t:"<<std::endl<<t<<std::endl;
+	//TODO replace qvo by qimu
+//	Eigen::Matrix3d tmp = this->imu.q.matrix() * this->q_last.matrix().inverse();
+//	std::cout<<"tvo:"<<std::endl<<t<<std::endl;
+//	for(int i=0;i<3;i++)
+//		for(int j=0;j<3;j++)
+//			*(t.data()+i*4+j) = *(tmp.data() + 3*i+j);
+//	this->q_last = this->imu.q;
+//	std::cout<<"timu:"<<std::endl<<tmp<<std::endl;
 	if(info)
 	{
 		info->timeEstimation = time.ticks();
@@ -296,6 +292,12 @@ Transform Odometry::process(const SensorData & data, OdometryInfo * info)
 //		std::cout<<"_pose:"<<std::endl<<_pose*t<<std::endl;
 //		static UTimer time2;
 //		printf("Freq:\t %f\n",1/time2.ticks() );
+		/*print qimu and qvo*/
+		Eigen::Quaternion<double> q = this->imu.q;
+		printf("qimu\t%lf\t%lf\t%lf\t%lf\t",q.x(),q.y(),q.z(),q.w());
+		Transform pose = _pose * t;
+		Eigen::Quaterniond q_vo = pose.getQuaterniond();
+		printf("qvo\t%lf\t%lf\t%lf\t%lf\n",q_vo.x(),q_vo.y(),q_vo.z(),q_vo.w());
 		return _pose *= t; // updated
 	}
 	else if(_resetCurrentCount > 0)

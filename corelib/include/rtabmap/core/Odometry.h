@@ -65,6 +65,8 @@ public:
 	int  getPnPFlags() const {return _pnpFlags;}
 	const Transform & previousTransform() const {return previousTransform_;}
 	IMU imu;
+	Eigen::Quaternion<double> q_last;
+
 private:
 	virtual Transform computeTransform(const SensorData & image, OdometryInfo * info = 0) = 0;
 
